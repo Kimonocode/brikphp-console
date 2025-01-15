@@ -27,7 +27,7 @@ interface FileInterface
     /**
      * Écrit dans le fichier.
      *
-     * @param string $content Contenu à écrire dans le fichier.
+     * @param  string $content Contenu à écrire dans le fichier.
      * @return int Le nombre d'octets écrits.
      */
     public function write(string $content): int;

@@ -11,21 +11,43 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 
 class ConfigureCommand extends Command
-{
+{   
+    /**
+     * Bases de données compatible
+     * @var string[]
+     */
     private array $databasesAvailable = ['Mysql', 'PostgreSQL', 'MongoDB'];
+
+    /**
+     * Environement de configuration
+     * @var array
+     */
     private array $environment = [];
 
+    /**
+     * Configuration générale de la commande
+     * 
+     * @return void
+     */
     protected function configure()
     {
         $this->setName('app:configure')
-             ->setDescription('Configuration interactive du projet.')
-             ->setHelp('Cette commande configure votre projet en demandant les informations nécessaires.');
+            ->setDescription('Configuration interactive du projet.')
+            ->setHelp('Cette commande configure votre projet en demandant les informations nécessaires.');
     }
 
+    /**
+     * Exécution générale de la commande
+     * 
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->askForDeleteCurrentConfig($input, $output);
         $this->configureProject($input, $output);
-        $this->saveEnvironment($output);
+        $this->saveEnvironment($input, $output);
 
         $output->writeln("\n<info>Résumé de la configuration :</info>");
         foreach ($this->environment as $key => $value) {
@@ -36,6 +58,14 @@ class ConfigureCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * Pause les différentes question et configure le projet
+     * 
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @throws \RuntimeException
+     * @return void
+     */
     private function configureProject(InputInterface $input, OutputInterface $output): void
     {
         $helper = $this->getHelper('question');
@@ -77,16 +107,17 @@ class ConfigureCommand extends Command
         }
     }
 
-    private function saveEnvironment(OutputInterface $output): void
+    /**
+     * Sauvegarde les différent fichier de configuration
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @throws \RuntimeException
+     * @return void
+     */
+    private function saveEnvironment(InputInterface $input, OutputInterface $output): void
     {
-        $filePath = Console::root() . '.env';
-        $file = new File($filePath);
-
-        // Supprimer le fichier si il existe
-        if($file->exists() && !$file->delete()) {
-            throw new \RuntimeException("Le fichier {$file->getName()}, existe mais il a été impossible de le supprimer");
-        }
-
+        $file = $this->getEnv();
         if (!$file->create()) {
             throw new \RuntimeException("Impossible de créer le fichier {$file->getName()}");
         }
@@ -102,9 +133,17 @@ class ConfigureCommand extends Command
             }
         }
 
-        $output->writeln("<info>Configuration enregistrée avec succès dans {$filePath}.</info>");
+        $output->writeln("<info>Configuration enregistrée avec succès.</info>");
     }
 
+    /**
+     * Pause Une question générique Oui ou Non
+     *
+     * @param string $question
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @return bool
+     */
     private function yesOrNo(string $question, InputInterface $input, OutputInterface $output): bool
     {
         $helper = $this->getHelper('question');
@@ -122,6 +161,37 @@ class ConfigureCommand extends Command
 
             $output->writeln('<error>Réponse invalide. Veuillez répondre par "y" (oui) ou "N" (non).</error>');
         }
+    }
+
+    /**
+     * Demande à l'utilisateur poursupprimer la configuration en cours
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @return void
+     */
+    private function askForDeleteCurrentConfig(InputInterface $input, OutputInterface $output)
+    {
+        $file = $this->getEnv();
+
+        // Supprimer le fichier si il existe
+        if($file->exists()) {
+            $this->yesOrNo(
+                "Le fichier de configuration .env existe déjà. Supprimer le fichier ?",
+                $input,
+                $output
+            ) ? $file->delete() : exit(0);
+        }
+    }
+
+    /**
+     * Accèes au fichier .env
+     *
+     * @return File
+     */
+    private function getEnv()
+    {
+        return new File(Console::root() . '.env');
     }
 }
 

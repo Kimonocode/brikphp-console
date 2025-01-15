@@ -5,7 +5,7 @@ tmp/
 temp/
 logs/
 *.log
-bin/
+testbin
 
 # 📁 Sessions et fichiers uploadés
 sessions/
