@@ -5,6 +5,7 @@ tmp/
 temp/
 logs/
 *.log
+bin/
 
 # 📁 Sessions et fichiers uploadés
 sessions/
