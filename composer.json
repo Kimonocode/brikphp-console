@@ -1,0 +1,29 @@
+{
+    "name": "kimonocode/brikphp-console",
+    "description": "Console Brikphp pour controler le framework",
+    "license": "BSD-3-Clause",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "ronald"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Brikphp\\Console\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4" : {
+            "Brikphp\\Console\\Tests\\" : "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "require": {
+        "symfony/console": "7.3.x-dev",
+        "symfony/finder": "7.3.x-dev"
+    }
+}
