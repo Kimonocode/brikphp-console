@@ -152,22 +152,24 @@ class ConfigureModuleCommand extends Command
             throw new \RuntimeException("La clé {$diFrom} existe déjà dans le container.");
         }
 
+        if (substr($diFrom, -7) !== '::class') {
+            $diFrom .= '::class';
+        }
+        
+        if (substr($diTo, -7) !== '::class') {
+            $diTo .= '::class';
+        }
+
         // Construire l'injection DI avec la méthode appropriée
-        $injectionFunction = ($diMethod === 'get') ? "\DI\get({$diTo})" : "\DI\create({$diTo})";
+        $injectionFunction = ($diMethod === 'get') ? "get({$diTo})" : "create({$diTo})";
 
         // Ajouter la nouvelle configuration au tableau
         $containerConfig[$diFrom] = $injectionFunction;
 
         $configContent = "<?php\n\nreturn [\n";
         foreach ($containerConfig as $key => $value) {
-            // s'assurer que ::class est à la fin de chaque clé et valeur
-            if (substr($key, -7) !== '::class') {
-                $key .= '::class';
-            }
-            if (substr($value, -7) !== '::class') {
-                $value .= '::class';
-            }
-            $configContent .= "    {$key} => {$value},\n";
+
+            $configContent .= "    {$key} => \DI\{$value},\n";
         }
         $configContent .= "];\n";
 
