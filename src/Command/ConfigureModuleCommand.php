@@ -112,7 +112,7 @@ class ConfigureModuleCommand extends Command
      */
     private function addModuleInDiContainer(array $brikConfig): bool
     {
-        // Validation des données
+        // Validation de la configuration DI
         if (empty($brikConfig['di']) || !isset($brikConfig['di']['method'], $brikConfig['di']['from'], $brikConfig['di']['to'])) {
             throw new \InvalidArgumentException("Configuration DI invalide dans le fichier YAML.");
         }
@@ -122,7 +122,7 @@ class ConfigureModuleCommand extends Command
         $diFrom = trim($diKey['from']);
         $diTo = trim($diKey['to']);
 
-        // Interprétation des classes PHP
+        // Vérification et nettoyage de la classe si nécessaire (retirer "::class" si présent)
         if (substr($diFrom, -7) === '::class') {
             $diFrom = substr($diFrom, 0, -7); // Retirer "::class"
         }
@@ -130,20 +130,21 @@ class ConfigureModuleCommand extends Command
             $diTo = substr($diTo, 0, -7); // Retirer "::class"
         }
 
-        // Chemin du fichier config.php
+        // Chemin du fichier de configuration du conteneur
         $containerPath = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
 
+        // Vérifier si le fichier existe et est accessible en écriture
         if (!file_exists($containerPath)) {
             throw new \RuntimeException("Le fichier {$containerPath} est introuvable.");
         }
-
         if (!is_writable($containerPath)) {
             throw new \RuntimeException("Le fichier {$containerPath} n'est pas accessible en écriture.");
         }
 
-        // Charger la configuration existante
+        // Charger la configuration actuelle du conteneur
         $containerConfig = include $containerPath;
 
+        // Vérifier si le fichier de configuration retourne un tableau
         if (!is_array($containerConfig)) {
             throw new \RuntimeException("Le fichier de configuration ne retourne pas un tableau valide.");
         }
@@ -153,26 +154,21 @@ class ConfigureModuleCommand extends Command
             throw new \RuntimeException("La clé {$diFrom}::class existe déjà dans le container.");
         }
 
-        // Construire la fonction d'injection DI
-        $injectionFunction = $diMethod === 'get'
-            ? "\\DI\\get({$diTo}::class)"
-            : "\\DI\\create({$diTo}::class)";
+        // Ne pas ajouter \DI\Definition\Reference::__set_state() de manière automatique
+        // Toujours utiliser \DI\get() pour tout type d'entrée
+        $injectionFunction = "\DI\get({$diTo}::class)"; // Toujours \DI\get() pour la méthode DI
 
-        // Ajouter la nouvelle configuration
+        // Ajouter la nouvelle configuration au tableau
         $containerConfig["{$diFrom}::class"] = $injectionFunction;
 
-        // Générer le contenu du fichier PHP
+        // Générer le contenu du fichier PHP avec une indentation correcte
         $configContent = "<?php\n\nreturn [\n";
         foreach ($containerConfig as $key => $value) {
-            if (strpos($value, '\\DI\\') === 0) {
-                $configContent .= "    {$key} => {$value},\n";
-            } else {
-                $configContent .= "    {$key} => " . var_export($value, true) . ",\n";
-            }
+            $configContent .= "    {$key} => {$value},\n";
         }
         $configContent .= "];\n";
 
-        // Écrire dans le fichier
+        // Écrire la nouvelle configuration dans le fichier
         if (file_put_contents($containerPath, $configContent) === false) {
             throw new \RuntimeException("Erreur lors de l'écriture dans le fichier de configuration.");
         }
