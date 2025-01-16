@@ -1,0 +1,164 @@
+<?php
+
+namespace Brikphp\Console\Command;
+
+use Brikphp\Console\Console;
+use Brikphp\Console\FileSystem\File;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Yaml\Yaml;
+
+class ConfigureModuleCommand extends Command
+{
+    /**
+     * Namespace du package par défaut
+     * @var string
+     */
+    private string $namespace = 'kimonocode/brikphp';
+
+    /**
+     * Modules valides
+     * @var string[]
+     */
+    private array $modulesAvailable = [
+        'validator',
+        'logger',
+        'database',
+        'mailer',
+        'session',
+        'renderer',
+    ];
+
+    /**
+     * Configuration de la commande
+     * 
+     * @return void
+     */
+    protected function configure()
+    {
+        $this->setName('brik:configure')
+            ->setDescription("Configure un nouveau module ajouté à votre application.")
+            ->setHelp("Cette commande configure un nouveau module ajouté à votre application.")
+            ->addArgument('module', InputArgument::REQUIRED, 'Nom du module.');
+    }
+
+    /**
+     * Main Function
+     * 
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @throws \RuntimeException
+     * @return int
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        // vérifie si le module se trouve dans la liste de module valide
+        $module = strtolower($input->getArgument('module'));
+        if (!in_array($module, $this->modulesAvailable)) {
+            $output->writeln("\n<error>ERROR</error> Le module '{$module}' est invalide.\n");
+            return Command::FAILURE;
+        }
+
+        // vérifie si le module est correctement installé.
+        $brik = new File($this->pathToModule($module));
+        if (!$brik->exists()) {
+            $output->writeln("\n<error>ERROR</error> Le module '{$module}' n'est pas installé.\n");
+            return Command::FAILURE;
+        }
+
+        // vérifie la configuration
+        $brikConfig = Yaml::parseFile($this->pathToModule($module));
+
+        // Vérifier que les clés nécessaires existent
+        if (!isset($brikConfig['di']['required']) || !isset($brikConfig['di']['method']) || !isset($brikConfig['di']['from']) || !isset($brikConfig['di']['to'])) {
+            $output->writeln("<error>ERROR</error> La configuration DI est invalide.");
+            return Command::FAILURE;
+        }
+
+        $brikIsRequiredInDIContainer = $brikConfig['di']['required'];
+
+        $output->writeln("\nConfiguration du module {$module} ...\n");
+
+        // Ajoute le module dans le container d'injections de dépendance si besoin
+        if ($brikIsRequiredInDIContainer) {
+            if (!$this->addModuleInDiContainer($brikConfig)) {
+                throw new \RuntimeException("Impossible d'initialiser le module dans le container.");
+            }
+        }
+
+        $output->writeln("\n<info>Le module {$module} à été initialisé.</info>\n");
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Retourne le chemin du fichier brik.yml du module
+     * 
+     * @param string $module
+     * @return string
+     */
+    private function pathToModule(string $module): string
+    {
+        return Console::root() . "vendor/{$this->namespace}-{$module}/brik.yml";
+    }
+
+    /**
+     * Ajoute le module dans le container d'injections de dépendances
+     * 
+     * @param array $brikConfig
+     * @throws \RuntimeException
+     * @return bool True si le module a été injecté
+     */
+    private function addModuleInDiContainer(array $brikConfig): bool
+    {
+        $diKey = $brikConfig['di'];
+        $diMethod = $diKey['method'];
+        $diFrom = $diKey['from'];
+        $diTo = $diKey['to'];
+
+        // Chemin vers la configuration du container
+        $containerPath = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
+        $containerFile = new File($containerPath);
+
+        if (!$containerFile->exists()) {
+            throw new \RuntimeException("Configuration du Container manquante");
+        }
+
+        // Inclure le fichier et valider qu'il retourne un tableau
+        $containerConfig = include $containerPath;
+        if (!is_array($containerConfig)) {
+            throw new \RuntimeException("La configuration du container est invalide.");
+        }
+
+        // Vérifier si la clé existe déjà
+        if (array_key_exists($diFrom, $containerConfig)) {
+            throw new \RuntimeException("La clé {$diFrom} existe déjà dans le container");
+        }
+
+        // Construire la fonction d'injection DI
+        $injectionFunction = '';
+        switch ($diMethod) {
+            case 'get':
+                $injectionFunction = "\DI\get({$diTo})";
+                break;
+            case 'create':
+                $injectionFunction = "\DI\create({$diTo})";
+                break;
+            default:
+                throw new \RuntimeException("La méthode {$diMethod} n'est pas compatible avec le container.");
+        }
+
+        // Ajouter la nouvelle configuration au container
+        $containerConfig[$diFrom] = $injectionFunction;
+
+        // Réécrire le fichier avec le tableau mis à jour
+        $newContainer = "<?php\n\nreturn " . var_export($containerConfig, true) . ";\n";
+
+        if (!file_put_contents($containerPath, $newContainer)) {
+            throw new \RuntimeException("Erreur lors de l'écriture dans le fichier de configuration.");
+        }
+
+        return true;
+    }
+}

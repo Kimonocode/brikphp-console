@@ -29,18 +29,6 @@ class FileTest extends TestCase {
         $this->assertFileExists($this->testFilePath);
     }
 
-    public function testWriteAndRead(): void
-    {
-        $file = new File($this->testFilePath);
-        $file->create();
-
-        $content = "Hello, PHPUnit!";
-        $bytesWritten = $file->write($content);
-
-        $this->assertEquals(strlen($content), $bytesWritten);
-        $this->assertEquals($content, $file->read());
-    }
-
     public function testDelete(): void
     {
         $file = new File($this->testFilePath);

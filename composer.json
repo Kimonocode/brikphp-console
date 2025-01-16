@@ -26,6 +26,7 @@
     },
     "require": {
         "symfony/console": "^6.0",
-        "symfony/finder": "^6.0"
+        "symfony/finder": "^6.0",
+        "symfony/yaml": "^7.2"
     }
 }

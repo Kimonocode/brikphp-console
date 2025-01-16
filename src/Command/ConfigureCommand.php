@@ -52,7 +52,7 @@ class ConfigureCommand extends Command
         $output->writeln("\n<info>Résumé de la configuration :</info>");
         foreach ($this->environment as $key => $value) {
             $valueDisplay = is_bool($value) ? ($value ? 'true' : 'false') : $value;
-            $output->writeln("  <comment>{$key}</comment>=<info>{$valueDisplay}</info>");
+            $output->writeln("<comment>{$key}</comment>=<info>{$valueDisplay}</info>");
         }
 
         return Command::SUCCESS;

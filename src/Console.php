@@ -2,11 +2,15 @@
 
 namespace Brikphp\Console;
 
+use Brikphp\Console\Command\AddModuleCommand;
 use Brikphp\Console\Command\ConfigureCommand;
+use Brikphp\Console\Command\ConfigureModuleCommand;
 use Symfony\Component\Console\Application;
 
 class Console extends Application
 {
+    protected static bool $dev = true;
+
     /**
      * Nom de la console
      * @var string
@@ -23,6 +27,8 @@ class Console extends Application
     {
         parent::__construct($name, $version);
         $this->add(new ConfigureCommand());
+        $this->add(new AddModuleCommand());
+        $this->add(new ConfigureModuleCommand());
     }
 
     /**
@@ -32,6 +38,11 @@ class Console extends Application
     public static function root(): string 
     {
         return getcwd() . DIRECTORY_SEPARATOR;
+    }
+
+    public static function debug(): bool
+    {
+        return self::$dev;
     }
 
 }
