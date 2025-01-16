@@ -112,50 +112,68 @@ class ConfigureModuleCommand extends Command
      */
     private function addModuleInDiContainer(array $brikConfig): bool
     {
-        $diKey = $brikConfig['di'];
-        $diMethod = $diKey['method'];
-        $diFrom = $diKey['from'];
-        $diTo = $diKey['to'];
-
-        // Chemin vers la configuration du container
-        $containerPath = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
-        $containerFile = new File($containerPath);
-
-        if (!$containerFile->exists()) {
-            throw new \RuntimeException("Configuration du Container manquante");
+        // Validation des données
+        if (empty($brikConfig['di']) || !isset($brikConfig['di']['method'], $brikConfig['di']['from'], $brikConfig['di']['to'])) {
+            throw new \InvalidArgumentException("Configuration DI invalide dans le fichier YAML.");
         }
 
-        // Inclure le fichier et valider qu'il retourne un tableau
+        $diKey = $brikConfig['di'];
+        $diMethod = $diKey['method'];
+        $diFrom = trim($diKey['from']);
+        $diTo = trim($diKey['to']);
+
+        // Interprétation des classes PHP
+        if (substr($diFrom, -7) === '::class') {
+            $diFrom = substr($diFrom, 0, -7); // Retirer "::class"
+        }
+        if (substr($diTo, -7) === '::class') {
+            $diTo = substr($diTo, 0, -7); // Retirer "::class"
+        }
+
+        // Chemin du fichier config.php
+        $containerPath = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
+
+        if (!file_exists($containerPath)) {
+            throw new \RuntimeException("Le fichier {$containerPath} est introuvable.");
+        }
+
+        if (!is_writable($containerPath)) {
+            throw new \RuntimeException("Le fichier {$containerPath} n'est pas accessible en écriture.");
+        }
+
+        // Charger la configuration existante
         $containerConfig = include $containerPath;
+
         if (!is_array($containerConfig)) {
-            throw new \RuntimeException("La configuration du container est invalide.");
+            throw new \RuntimeException("Le fichier de configuration ne retourne pas un tableau valide.");
         }
 
         // Vérifier si la clé existe déjà
-        if (array_key_exists($diFrom, $containerConfig)) {
-            throw new \RuntimeException("La clé {$diFrom} existe déjà dans le container");
+        if (array_key_exists($diFrom . '::class', $containerConfig)) {
+            throw new \RuntimeException("La clé {$diFrom}::class existe déjà dans le container.");
         }
 
         // Construire la fonction d'injection DI
-        $injectionFunction = '';
-        switch ($diMethod) {
-            case 'get':
-                $injectionFunction = "\DI\get({$diTo})";
-                break;
-            case 'create':
-                $injectionFunction = "\DI\create({$diTo})";
-                break;
-            default:
-                throw new \RuntimeException("La méthode {$diMethod} n'est pas compatible avec le container.");
+        $injectionFunction = $diMethod === 'get'
+            ? "\\DI\\get({$diTo}::class)"
+            : "\\DI\\create({$diTo}::class)";
+
+        // Ajouter la nouvelle configuration
+        $containerConfig["{$diFrom}::class"] = $injectionFunction;
+
+        // Générer le contenu du fichier PHP
+        $configContent = "<?php\n\nreturn [\n";
+        foreach ($containerConfig as $key => $value) {
+            if (strpos($value, '\\DI\\') === 0) {
+                $configContent .= "    {$key} => {$value},\n";
+            } else {
+                $configContent .= "    {$key} => " . var_export($value, true) . ",\n";
+            }
         }
+        $configContent .= "];\n";
 
-        // Ajouter la nouvelle configuration au container
-        $containerConfig[$diFrom] = $injectionFunction;
-
-        // Réécrire le fichier avec le tableau mis à jour
-        $newContainer = "<?php\n\nreturn " . var_export($containerConfig, true) . ";\n";
-
-        if (!file_put_contents($containerPath, $newContainer)) {
+        // Écrire dans le fichier
+        if (file_put_contents($containerPath, $configContent) === false) {
             throw new \RuntimeException("Erreur lors de l'écriture dans le fichier de configuration.");
         }
 
