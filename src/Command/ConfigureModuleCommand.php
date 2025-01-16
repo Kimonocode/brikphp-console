@@ -171,7 +171,7 @@ class ConfigureModuleCommand extends Command
             if (substr($key, -7) !== '::class') {
                 $key .= '::class';
             }
-            $configContent .= "    {$key} => \DI\{$value},\n";
+            $configContent .= "    {$key} => \\DI\\{$value},\n";
         }
         $configContent .= "];\n";
 
