@@ -118,17 +118,9 @@ class ConfigureModuleCommand extends Command
         }
 
         $diKey = $brikConfig['di'];
-        $diMethod = $diKey['method'];
+        $diMethod = trim($diKey['method']);
         $diFrom = trim($diKey['from']);
         $diTo = trim($diKey['to']);
-
-        // Vérification et nettoyage de la classe si nécessaire (retirer "::class" si présent)
-        if (substr($diFrom, -7) === '::class') {
-            $diFrom = substr($diFrom, 0, -7); // Retirer "::class"
-        }
-        if (substr($diTo, -7) === '::class') {
-            $diTo = substr($diTo, 0, -7); // Retirer "::class"
-        }
 
         // Chemin du fichier de configuration du conteneur
         $containerPath = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
@@ -150,16 +142,14 @@ class ConfigureModuleCommand extends Command
         }
 
         // Vérifier si la clé existe déjà
-        if (array_key_exists($diFrom . '::class', $containerConfig)) {
-            throw new \RuntimeException("La clé {$diFrom}::class existe déjà dans le container.");
+        if (array_key_exists($diFrom, $containerConfig)) {
+            throw new \RuntimeException("La clé {$diFrom} existe déjà dans le container.");
         }
-
-        // Ne pas ajouter \DI\Definition\Reference::__set_state() de manière automatique
-        // Toujours utiliser \DI\get() pour tout type d'entrée
-        $injectionFunction = "\DI\get({$diTo}::class)"; // Toujours \DI\get() pour la méthode DI
+        
+        $injectionFunction = $diMethod === 'get' ? "\DI\get({$diTo})" : "\DI\create({$diTo})";
 
         // Ajouter la nouvelle configuration au tableau
-        $containerConfig["{$diFrom}::class"] = $injectionFunction;
+        $containerConfig[$diFrom] = $injectionFunction;
 
         // Générer le contenu du fichier PHP avec une indentation correcte
         $configContent = "<?php\n\nreturn [\n";
