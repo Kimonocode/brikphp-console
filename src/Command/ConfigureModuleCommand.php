@@ -155,20 +155,22 @@ class ConfigureModuleCommand extends Command
         if (substr($diFrom, -7) !== '::class') {
             $diFrom .= '::class';
         }
-        
+
         if (substr($diTo, -7) !== '::class') {
             $diTo .= '::class';
         }
 
         // Construire l'injection DI avec la méthode appropriée
-        $injectionFunction = ($diMethod === 'get') ? "get({$diTo})" : "create({$diTo})";
+        $injectionFunction = $diMethod === 'get' ? "get({$diTo})" : "create({$diTo})";
 
         // Ajouter la nouvelle configuration au tableau
         $containerConfig[$diFrom] = $injectionFunction;
 
         $configContent = "<?php\n\nreturn [\n";
         foreach ($containerConfig as $key => $value) {
-
+            if (substr($key, -7) !== '::class') {
+                $key .= '::class';
+            }
             $configContent .= "    {$key} => \DI\{$value},\n";
         }
         $configContent .= "];\n";
