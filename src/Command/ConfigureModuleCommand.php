@@ -122,6 +122,11 @@ class ConfigureModuleCommand extends Command
         $diFrom = trim($diKey['from']);
         $diTo = trim($diKey['to']);
 
+        // Vérification des valeurs pour la méthode DI
+        if (!in_array($diMethod, ['get', 'create'])) {
+            throw new \RuntimeException("La méthode DI '{$diMethod}' n'est pas valide. Utilisez 'get' ou 'create'.");
+        }
+
         // Chemin du fichier de configuration du conteneur
         $containerPath = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
 
@@ -129,6 +134,7 @@ class ConfigureModuleCommand extends Command
         if (!file_exists($containerPath)) {
             throw new \RuntimeException("Le fichier {$containerPath} est introuvable.");
         }
+
         if (!is_writable($containerPath)) {
             throw new \RuntimeException("Le fichier {$containerPath} n'est pas accessible en écriture.");
         }
@@ -145,8 +151,9 @@ class ConfigureModuleCommand extends Command
         if (array_key_exists($diFrom, $containerConfig)) {
             throw new \RuntimeException("La clé {$diFrom} existe déjà dans le container.");
         }
-        
-        $injectionFunction = $diMethod === 'get' ? "\DI\get({$diTo})" : "\DI\create({$diTo})";
+
+        // Construire l'injection DI avec la méthode appropriée
+        $injectionFunction = ($diMethod === 'get') ? "\DI\get('{$diTo}')" : "\DI\create('{$diTo}')";
 
         // Ajouter la nouvelle configuration au tableau
         $containerConfig[$diFrom] = $injectionFunction;
@@ -154,7 +161,7 @@ class ConfigureModuleCommand extends Command
         // Générer le contenu du fichier PHP avec une indentation correcte
         $configContent = "<?php\n\nreturn [\n";
         foreach ($containerConfig as $key => $value) {
-            $configContent .= "    {$key} => {$value},\n";
+            $configContent .= "    '{$key}' => {$value},\n";
         }
         $configContent .= "];\n";
 
@@ -165,4 +172,5 @@ class ConfigureModuleCommand extends Command
 
         return true;
     }
+
 }
