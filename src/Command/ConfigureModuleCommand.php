@@ -153,15 +153,21 @@ class ConfigureModuleCommand extends Command
         }
 
         // Construire l'injection DI avec la méthode appropriée
-        $injectionFunction = ($diMethod === 'get') ? "\DI\get('{$diTo}')" : "\DI\create('{$diTo}')";
+        $injectionFunction = ($diMethod === 'get') ? "\DI\get({$diTo})" : "\DI\create({$diTo})";
 
         // Ajouter la nouvelle configuration au tableau
         $containerConfig[$diFrom] = $injectionFunction;
 
-        // Générer le contenu du fichier PHP avec une indentation correcte
         $configContent = "<?php\n\nreturn [\n";
         foreach ($containerConfig as $key => $value) {
-            $configContent .= "    '{$key}' => {$value},\n";
+            // s'assurer que ::class est à la fin de chaque clé et valeur
+            if (substr($key, -7) !== '::class') {
+                $key .= '::class';
+            }
+            if (substr($value, -7) !== '::class') {
+                $value .= '::class';
+            }
+            $configContent .= "    {$key} => {$value},\n";
         }
         $configContent .= "];\n";
 
