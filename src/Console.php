@@ -2,13 +2,19 @@
 
 namespace Brikphp\Console;
 
-use Brikphp\Console\Command\AddModuleCommand;
-use Brikphp\Console\Command\ConfigureCommand;
-use Brikphp\Console\Command\ConfigureModuleCommand;
 use Symfony\Component\Console\Application;
+use Brikphp\Console\Command\Project\ConfigureCommand;
+use Brikphp\Console\Command\Module\AddModuleCommand;
+use Brikphp\Console\Command\Module\ConfigureModuleCommand;
 
 class Console extends Application
 {
+    /**
+     * Namespace du package BrikPhp
+     * @var string
+     */
+    protected static string $namespace = 'kimonocode/brikphp';
+
     protected static bool $dev = true;
 
     /**
@@ -45,4 +51,8 @@ class Console extends Application
         return self::$dev;
     }
 
+    public static function getNamespace(): string
+    {
+        return self::$namespace;
+    }
 }
