@@ -3,11 +3,12 @@
 namespace Brikphp\Console\Brik;
 
 use Brikphp\Console\Container\DiContainer;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Gère le fichier brik.yml du module
  */
-class BrikConfig implements BrikConfigInterface {
+class BrikConfig {
 
     /**
      * Configuration vide
@@ -20,57 +21,51 @@ class BrikConfig implements BrikConfigInterface {
         $this->config = $config;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getDiInjectionKey(): string
     {
         return trim($this->config['di']['injection']['from']);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getDiInjectionValue(): string 
     {
         return trim($this->config['di']['injection']['to']); 
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getDiInjectionFunction(): string
     {
         return trim($this->config['di']['injection']['function']);
     }
-    
-    /**
-     * @inheritDoc
-     */
+
     public function isRequiredInDiContainer(): bool
     {
         return $this->config['di']['required'];
     }
 
-     /**
-     * @inheritDoc
+    /**
+     * Summary of tryAddInDiContainer
+     * @param string $module
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @throws \RuntimeException
+     * @return bool
      */
     public function tryAddInDiContainer(): bool
     {
         $container = new DiContainer();
-
+        
         $function = $this->getDiInjectionFunction();
         $from = $container->formatClassReference($this->getDiInjectionKey());
+        $clearFrom = substr($from, 0, -7);
         $to = $container->formatClassReference($this->getDiInjectionValue());
 
-        // Vérification des valeurs pour la méthode DI
-        if ($container->acceptInjectionFunction($function)) {
-            throw new \RuntimeException("La méthode DI '{$function}' n'est pas valide.");
+        foreach ($container->data() as $key => $value) {
+            if($key === $clearFrom){
+                throw new \RuntimeException("Déjà installé.");
+            }
         }
 
-        // Vérifier si la clé existe déjà
-        if ($container->has($from)) {
-            throw new \RuntimeException("La clé {$from} existe déjà dans le container.");
+        // Vérification des valeurs pour la méthode DI
+        if (!$container->acceptInjectionFunction($function)) {
+            throw new \RuntimeException("La méthode DI '{$function}' n'est pas valide.");
         }
 
         // Ajouter la nouvelle configuration au tableau

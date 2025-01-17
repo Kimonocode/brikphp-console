@@ -3,7 +3,6 @@
 namespace Brikphp\Console\Command\Base;
 
 use Brikphp\Console\Brik\BrikConfig;
-use Brikphp\Console\Brik\BrikConfigInterface;
 use Brikphp\Console\Console;
 use Brikphp\Console\FileSystem\File;
 use Symfony\Component\Console\Command\Command;
@@ -69,17 +68,12 @@ class ModuleCommand extends Command
      * Charge la configuration du module depuis son fichier brik.yml
      * 
      * @param string $module
-     * @return bool|\Brikphp\Console\Brik\BrikConfigInterface
+     * @return bool|\Brikphp\Console\Brik\BrikConfig
      */
-    protected function loadBrikConfig(string $module): bool|BrikConfigInterface
+    protected function loadBrikConfig(string $module): bool|BrikConfig
     {
         $brikConfig = Yaml::parseFile($this->pathToModule($module));
-        if (
-               !isset($brikConfig['di']['required']) 
-            || !isset($brikConfig['di']['method']) 
-            || !isset($brikConfig['di']['from']) 
-            || !isset($brikConfig['di']['to'])) 
-        {
+        if (!isset($brikConfig['di']['required'])){
             return false;
         }
         return new BrikConfig($brikConfig);

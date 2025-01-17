@@ -44,7 +44,7 @@ class DiContainer extends Container {
             $content .= "    {$this->formatClassReference($key)} => \\DI\\{$this->forceClassReference($value)},\n";
         }
         $content .= "];\n";
-        if (file_put_contents(self::$path, $content) === false) {
+        if (file_put_contents($this->path, $content) === false) {
             throw new \RuntimeException("Erreur lors de l'écriture dans le fichier de configuration.");
         }
         return true;
