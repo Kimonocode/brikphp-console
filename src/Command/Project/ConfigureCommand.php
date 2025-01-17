@@ -98,7 +98,7 @@ class ConfigureCommand extends ModuleCommand
             $output->writeln("<comment>{$key}</comment>=<info>{$valueDisplay}</info>");
         }
 
-        $output->writeln("<info>lancez un serveur de dévelopment avec composer dev</info>");
+        $output->writeln("\nVous pouvez maintenant lancez l'application avec la commande <comment>composer dev</comment>\n");
         return Command::SUCCESS;
     }
 

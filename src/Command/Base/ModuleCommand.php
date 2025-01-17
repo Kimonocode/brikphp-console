@@ -71,7 +71,7 @@ class ModuleCommand extends BaseCommand
      */
     protected function load(string $module): bool|BrikConfig
     {
-        $brikConfig = Yaml::parseFile($this->pathToModule($module));
+        $brikConfig = Yaml::parseFile($this->pathToBrik($module));
         if (!isset($brikConfig['di']['required'])){
             return false;
         }
