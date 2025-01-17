@@ -65,7 +65,7 @@ class DiContainer extends Container {
     }
 
     /**
-     * Supprime la dernière parenthèse de la function, Force le mot clé ::class et rajoute la parenthèse
+     * Supprime la dernière parenthèse de la function php-di, Force le mot clé ::class et rajoute la parenthèse
      * 
      * @param string $key
      * @return string
@@ -77,6 +77,17 @@ class DiContainer extends Container {
             $key .= "::class)";
         }
         return $key;
+    }
+
+    /**
+     * Supprime le ::class d'une clé au besoin
+     * 
+     * @param string $key
+     * @return string
+     */
+    public function removeClassReference(string $key): string
+    {
+        return substr($key, 0, -7);
     }
 
     /**
@@ -109,7 +120,7 @@ class DiContainer extends Container {
      * Inclu le fichier du container d'injection de dépendance Brikphp
      * 
      * @throws \RuntimeException
-     * @return string[]
+     * @return array
      */
     private function open(): array
     {

@@ -3,7 +3,6 @@
 namespace Brikphp\Console\Command\Module;
 
 use Brikphp\Console\Command\Base\ModuleCommand;
-use Brikphp\Console\Console;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,31 +15,32 @@ class AddModuleCommand extends ModuleCommand {
             ->setDescription("Ajoute un nouveau module à votre application.")
             ->setHelp("Cette commande ajoute un nouveau module à votre application.")
             ->addArgument('module', InputArgument::REQUIRED, 'Nom du module.');
-
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) 
     {      
-        $module = $input->getArgument('module'); 
-        $version = Console::debug() ? "main-dev" : '';
-        $command = "composer require kimonocode/brikphp-{$module} {$version}";
+        $module = $input->getArgument('module');
 
-        $output->writeln("\nAjout du module {$module} ...\n");
-
-        if(!$this->itsAnAvailableModule(module: $module)) {
+        // vérifie si le module est valide
+        if(!$this->available(module: $module)) {
             $output->writeln("\n<error>ERROR</error> Le module '{$module}' est invalide.\n");
             return Command::INVALID;
         }
 
         // vérifie si le module est déjà installé
-        if($this->hasBrikDefinitions($module)){
-            $output->writeln("\n<info>ERROR</info> Le module '{$module}' est déjà installé.\n");
+        if($this->hasDefinitions($module)){
+            $output->writeln("\n<info>INFO</info> Le module '{$module}' est déjà installé.\n");
             return Command::INVALID;
         }
 
-        if(!shell_exec($command)){
+        $output->writeln("\nAjout du module {$module} ...\n");
+
+        if(!$this->download($module)) {
+            $output->writeln("\n<error>ERROR</error> Impossible de télécharger le module.n");
             return Command::FAILURE;
         }
+
+        $output->writeln("\nLe module a été installé. Essayez brik:configure <module> pour l'initialiser.\n");
 
         return Command::SUCCESS;
     }

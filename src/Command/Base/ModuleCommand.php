@@ -5,10 +5,9 @@ namespace Brikphp\Console\Command\Base;
 use Brikphp\Console\Brik\BrikConfig;
 use Brikphp\Console\Console;
 use Brikphp\Console\FileSystem\File;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Yaml\Yaml;
 
-class ModuleCommand extends Command
+class ModuleCommand extends BaseCommand
 {
     /**
      * Modules valides
@@ -29,7 +28,7 @@ class ModuleCommand extends Command
      * @param string $module
      * @return string
      */
-    protected function pathToModule(string $module): string
+    protected function pathToBrik(string $module): string
     {
         $namespace = Console::getNamespace();
         return Console::root() . "vendor/{$namespace}-{$module}/brik.yml";
@@ -41,9 +40,9 @@ class ModuleCommand extends Command
      * @param string $module Nom du module
      * @return bool
      */
-    protected function hasBrikDefinitions(string $module): bool 
+    protected function hasDefinitions(string $module): bool 
     {
-        $brik = new File($this->pathToModule($module));
+        $brik = new File($this->pathToBrik($module));
         if ($brik->exists()) {
             return true;
         }
@@ -56,7 +55,7 @@ class ModuleCommand extends Command
      * @param string $module nom de module
      * @return bool
      */
-    protected function itsAnAvailableModule(string $module)
+    protected function available(string $module)
     {
         if (in_array(strtolower($module), $this->modulesAvailable)) {
             return true;
@@ -70,12 +69,26 @@ class ModuleCommand extends Command
      * @param string $module
      * @return bool|\Brikphp\Console\Brik\BrikConfig
      */
-    protected function loadBrikConfig(string $module): bool|BrikConfig
+    protected function load(string $module): bool|BrikConfig
     {
         $brikConfig = Yaml::parseFile($this->pathToModule($module));
         if (!isset($brikConfig['di']['required'])){
             return false;
         }
         return new BrikConfig($brikConfig);
+    }
+
+    /**
+     * Télécharge un module via composer
+     * 
+     * @param string $module
+     * @return bool|string|null
+     */
+    protected function download(string $module)
+    {
+        $namespace = Console::getNamespace();
+        $version = Console::debug() ? "main-dev" : '';
+        $command = "composer require {$namespace}-{$module} {$version}";
+        return shell_exec($command);
     }
 }

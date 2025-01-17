@@ -3,7 +3,6 @@
 namespace Brikphp\Console\Brik;
 
 use Brikphp\Console\Container\DiContainer;
-use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Gère le fichier brik.yml du module
@@ -21,45 +20,59 @@ class BrikConfig {
         $this->config = $config;
     }
 
+    /**
+     * Renvoie la référence clé
+     * @return string
+     */
     public function getDiInjectionKey(): string
     {
         return trim($this->config['di']['injection']['from']);
     }
 
+    /**
+     * Renvoie la valeur clé
+     * @return string
+     */
     public function getDiInjectionValue(): string 
     {
         return trim($this->config['di']['injection']['to']); 
     }
 
+    /**
+     * Renvoie la fonction utilisée pour php-di
+     * @return string
+     */
     public function getDiInjectionFunction(): string
     {
         return trim($this->config['di']['injection']['function']);
     }
 
+    /**
+     * Renvoie si le module est requis dans le container
+     * @return bool
+     */
     public function isRequiredInDiContainer(): bool
     {
         return $this->config['di']['required'];
     }
 
     /**
-     * Summary of tryAddInDiContainer
-     * @param string $module
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Injecte Les dépendances du module dans le container php-di
+     * 
      * @throws \RuntimeException
      * @return bool
      */
-    public function tryAddInDiContainer(): bool
+    public function injectInDiContainer(): bool
     {
         $container = new DiContainer();
         
         $function = $this->getDiInjectionFunction();
         $from = $container->formatClassReference($this->getDiInjectionKey());
-        $clearFrom = substr($from, 0, -7);
         $to = $container->formatClassReference($this->getDiInjectionValue());
 
         foreach ($container->data() as $key => $value) {
-            if($key === $clearFrom){
-                throw new \RuntimeException("Déjà installé.");
+            if($key === $container->removeClassReference($from)){
+                throw new \RuntimeException("La dépendance est déjà initialisée dans le container.");
             }
         }
 
