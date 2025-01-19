@@ -5,7 +5,10 @@ namespace Brikphp\Console\Command\Project;
 use Brikphp\Console\Command\Base\ModuleCommand;
 use Brikphp\Console\Console;
 use Brikphp\Console\Container\ProjectContainer;
-use Brikphp\Console\FileSystem\File;
+use Brikphp\FileSystem\File;
+use Brikphp\FileSystem\FileInterface;
+use Brikphp\FileSystem\FileSystem;
+use Brikphp\FileSystem\FileSystemInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -13,11 +16,18 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
 
 class ConfigureCommand extends ModuleCommand
 {   
+    private FileSystemInterface $fileSystem;
+
     /**
      * Bases de données compatible
      * @var string[]
      */
     private array $databasesAvailable = ['Mysql', 'PostgreSQL', 'MongoDB'];
+
+    public function __construct()
+    {
+        $this->fileSystem = new FileSystem();
+    }
 
     /**
      * Configuration générale de la commande
@@ -72,8 +82,9 @@ class ConfigureCommand extends ModuleCommand
      */
     private function saveEnvironment(OutputInterface $output, ProjectContainer $project): int 
     {
-        $file = $this->getEnv();
-        if (!$file->create()) {
+        $file = $this->envFile();
+
+        if (!$this->fileSystem->create($file)) {
             $output->writeln("<error>Impossible de créer le fichier {$file->getName()}</error>");
             return Command::FAILURE;
         }
@@ -84,7 +95,7 @@ class ConfigureCommand extends ModuleCommand
             $formattedValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
             $formattedValue = str_contains($formattedValue, ' ') ? "\"{$formattedValue}\"" : $formattedValue;
 
-            if (!$file->write("{$key}={$formattedValue}\n")) {
+            if (!$this->fileSystem->write($file, "{$key}={$formattedValue}\n")) {
                 $output->writeln("<error>Erreur lors de l'écriture de {$key} dans le fichier .env.</error>");
                 return Command::FAILURE;
             }
@@ -111,15 +122,13 @@ class ConfigureCommand extends ModuleCommand
      */
     private function askForDeleteCurrentConfig(InputInterface $input, OutputInterface $output): void
     {
-        $file = $this->getEnv();
-
         // Supprimer le fichier si il existe
-        if($file->exists()) {
+        if($this->envFile()->exists()) {
             $this->yesOrNo(
                 "Le fichier de configuration .env existe déjà. Supprimer le fichier ?",
                 $input,
                 $output
-            ) ? $file->delete() : exit(0);
+            ) ? $this->fileSystem->delete($this->envFile()) : exit(0);
         }
     }
 
@@ -203,10 +212,10 @@ class ConfigureCommand extends ModuleCommand
     }
 
     /**
-     * Accès au fichier .env
-     * @return File
+     * Retourne un object File pointant vers le fichier .env
+     * @return \Brikphp\FileSystem\FileInterface
      */
-    private function getEnv()
+    private function envFile(): FileInterface
     {
         return new File(Console::root() . '.env');
     }

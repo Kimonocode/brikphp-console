@@ -4,7 +4,7 @@ namespace Brikphp\Console\Command\Base;
 
 use Brikphp\Console\Brik\BrikConfig;
 use Brikphp\Console\Console;
-use Brikphp\Console\FileSystem\File;
+use Brikphp\FileSystem\File;
 use Symfony\Component\Yaml\Yaml;
 
 class ModuleCommand extends BaseCommand
@@ -64,7 +64,7 @@ class ModuleCommand extends BaseCommand
     }
 
     /**
-     * Charge la configuration du module depuis son fichier brik.yml
+     * Parse le fichier de configuration du module depuis son fichier brik.yml
      * 
      * @param string $module
      * @return bool|\Brikphp\Console\Brik\BrikConfig

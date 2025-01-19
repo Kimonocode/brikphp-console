@@ -17,7 +17,7 @@ class AddModuleCommand extends ModuleCommand {
             ->addArgument('module', InputArgument::REQUIRED, 'Nom du module.');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output) 
+    protected function execute(InputInterface $input, OutputInterface $output): int 
     {      
         $module = $input->getArgument('module');
 
