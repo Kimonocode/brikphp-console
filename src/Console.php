@@ -33,10 +33,10 @@ class Console extends Application
     public function __construct(string $name, string $version)
     {
         parent::__construct($name, $version);
-        $this->add(new StartServerCommand())
-             ->add(new ConfigureCommand())
-             ->add(new AddModuleCommand())
-             ->add(new ConfigureModuleCommand());
+        $this->add(new StartServerCommand());
+        $this->add(new ConfigureCommand());
+        $this->add(new AddModuleCommand());
+        $this->add(new ConfigureModuleCommand());
     }
 
     /**

@@ -32,7 +32,7 @@ class StartServerCommand extends Command {
      */
     protected function configure(): void
     {
-        $this->setName('server:start')
+        $this->setName('app:start')
             ->setDescription('Starts the development server.')
             ->setHelp('This command starts a development server with HOT-RELOAD functionality.');
     }
