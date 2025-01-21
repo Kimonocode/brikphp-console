@@ -8,41 +8,54 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Command to add a new module to the application.
+ */
 class AddModuleCommand extends ModuleCommand {
 
+    /**
+     * Configures the command by defining its name, description, help, and arguments.
+     */
     protected function configure() {
         $this->setName('brik:add')
-            ->setDescription("Ajoute un nouveau module à votre application.")
-            ->setHelp("Cette commande ajoute un nouveau module à votre application.")
-            ->addArgument('module', InputArgument::REQUIRED, 'Nom du module.');
+            ->setDescription("Adds a new module to your application.")
+            ->setHelp("This command adds a new module to your application by downloading and preparing it for use.")
+            ->addArgument('module', InputArgument::REQUIRED, 'Name of the module.');
     }
 
+    /**
+     * Executes the command to add the specified module.
+     *
+     * @param InputInterface $input The input interface.
+     * @param OutputInterface $output The output interface.
+     * @return int The command status (success or failure).
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int 
     {      
         $module = $input->getArgument('module');
 
-        // vérifie si le module est valide
-        if(!$this->available(module: $module)) {
-            $output->writeln("\n<error>ERROR</error> Le module '{$module}' est invalide.\n");
+        // Check if the module is valid.
+        if (!$this->available(module: $module)) {
+            $output->writeln("\n<error>ERROR:</error> The module '{$module}' is invalid.\n");
             return Command::INVALID;
         }
 
-        // vérifie si le module est déjà installé
-        if($this->hasDefinitions($module)){
-            $output->writeln("\n<info>INFO</info> Le module '{$module}' est déjà installé.\n");
+        // Check if the module is already installed.
+        if ($this->hasDefinitions($module)) {
+            $output->writeln("\n<info>INFO:</info> The module '{$module}' is already installed.\n");
             return Command::INVALID;
         }
 
-        $output->writeln("\nAjout du module {$module} ...\n");
+        $output->writeln("\nAdding the module '{$module}'...\n");
 
-        if(!$this->download($module)) {
-            $output->writeln("\n<error>ERROR</error> Impossible de télécharger le module.n");
+        // Attempt to download the module.
+        if (!$this->download($module)) {
+            $output->writeln("\n<error>ERROR:</error> Unable to download the module.\n");
             return Command::FAILURE;
         }
 
-        $output->writeln("\nLe module a été installé. Essayez brik:configure <module> pour l'initialiser.\n");
+        $output->writeln("\nThe module has been installed. Try running 'brik:configure <module>' to initialize it.\n");
 
         return Command::SUCCESS;
     }
-
 }

@@ -2,6 +2,7 @@
 
 namespace Brikphp\Console;
 
+use Brikphp\Console\Command\StartServerCommand;
 use Symfony\Component\Console\Application;
 use Brikphp\Console\Command\Project\ConfigureCommand;
 use Brikphp\Console\Command\Module\AddModuleCommand;
@@ -32,9 +33,10 @@ class Console extends Application
     public function __construct(string $name, string $version)
     {
         parent::__construct($name, $version);
-        $this->add(new ConfigureCommand());
-        $this->add(new AddModuleCommand());
-        $this->add(new ConfigureModuleCommand());
+        $this->add(new StartServerCommand())
+             ->add(new ConfigureCommand())
+             ->add(new AddModuleCommand())
+             ->add(new ConfigureModuleCommand());
     }
 
     /**

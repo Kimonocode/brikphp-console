@@ -3,57 +3,87 @@
 namespace Brikphp\Console\Container;
 
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use Psr\Container\ContainerExceptionInterface;
 
-class Container implements ContainerInterface {
-
+/**
+ * Implements a simple Dependency Injection (DI) container following the PSR-11 standard.
+ */
+class Container implements ContainerInterface
+{
     /**
-     * Container vide
-     * @var array
+     * Holds the container's key-value data.
+     * 
+     * @var array<string, mixed>
      */
     private array $container = [];
 
     /**
-     * Ajoue une nouvelle clé / valeur
+     * Adds a new key-value pair to the container.
      * 
-     * @param string $key
-     * @param mixed $value
+     * @param string $key The key to be added.
+     * @param mixed $value The value associated with the key.
      * @return void
      */
-    public function add(string $key, mixed $value) 
+    public function add(string $key, mixed $value): void
     {
         $this->container[$key] = $value;
     }
-    
+
     /**
-     * @inheritDoc
+     * Checks if the container contains the specified key.
+     * 
+     * @param string $key The key to check.
+     * @return bool True if the key exists, false otherwise.
      */
-    public function has(string $key): bool 
+    public function has(string $key): bool
     {
         return array_key_exists($key, $this->container);
     }
 
     /**
-     * Modifie le container
+     * Replaces the current container data with a new set of data.
      * 
-     * @param ContainerInterface|array $container
+     * @param array<string, mixed>|ContainerInterface $container The new container data.
      * @return void
      */
-    public function set(ContainerInterface|array $container): void 
+    public function set(ContainerInterface|array $container): void
     {
-        $this->container = $container;
+        if ($container instanceof ContainerInterface) {
+            $this->container = $container->get();
+        } else {
+            $this->container = $container;
+        }
     }
 
     /**
-     * @inheritDoc
+     * Retrieves an entry from the container by its identifier.
+     * 
+     * @param string $id The identifier of the entry.
+     * @return mixed The value of the entry.
+     * @throws NotFoundExceptionInterface If the identifier does not exist in the container.
+     * @throws ContainerExceptionInterface For any general error in the container.
      */
-    public function get(string $id) {
+    public function get(string $id): mixed
+    {
+        if (!$this->has($id)) {
+            throw new class($id) extends \RuntimeException implements NotFoundExceptionInterface {
+                public function __construct($id)
+                {
+                    parent::__construct("The key '{$id}' was not found in the container.");
+                }
+            };
+        }
+
+        return $this->container[$id];
     }
 
     /**
-     * Renvoie les donées du container
-     * @return array
+     * Retrieves all the data stored in the container.
+     * 
+     * @return array<string, mixed> The container's data.
      */
-    public function data(): array 
+    public function data(): array
     {
         return $this->container;
     }

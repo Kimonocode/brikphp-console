@@ -7,10 +7,16 @@ use Brikphp\Console\Console;
 use Brikphp\FileSystem\File;
 use Symfony\Component\Yaml\Yaml;
 
+/**
+ * Provides shared functionality for managing application modules.
+ * This class supports checking module validity, verifying module configuration,
+ * and interacting with module configuration files.
+ */
 class ModuleCommand extends BaseCommand
 {
     /**
-     * Modules valides
+     * List of valid modules.
+     * 
      * @var string[]
      */
     protected array $modulesAvailable = [
@@ -23,10 +29,10 @@ class ModuleCommand extends BaseCommand
     ];
 
     /**
-     * Retourne le chemin du fichier brik.yml du module
-     * 
-     * @param string $module
-     * @return string
+     * Retrieves the path to a module's `brik.yml` configuration file.
+     *
+     * @param string $module The module name.
+     * @return string The path to the module's `brik.yml` file.
      */
     protected function pathToBrik(string $module): string
     {
@@ -35,54 +41,48 @@ class ModuleCommand extends BaseCommand
     }
 
     /**
-     * Vérifie si le module à sa configuration brik.yml
-     * 
-     * @param string $module Nom du module
-     * @return bool
+     * Checks if a module has a `brik.yml` configuration file.
+     *
+     * @param string $module The module name.
+     * @return bool True if the file exists, otherwise false.
      */
     protected function hasDefinitions(string $module): bool 
     {
         $brik = new File($this->pathToBrik($module));
-        if ($brik->exists()) {
-            return true;
-        }
-        return false;
+        return $brik->exists();
     }
 
     /**
-     * Vérifie si le module passé en argument des commandes de modules se trouve dans la liste des module disponible.
-     * 
-     * @param string $module nom de module
-     * @return bool
+     * Validates if a module is included in the list of available modules.
+     *
+     * @param string $module The module name.
+     * @return bool True if the module is available, otherwise false.
      */
-    protected function available(string $module)
+    protected function available(string $module): bool
     {
-        if (in_array(strtolower($module), $this->modulesAvailable)) {
-            return true;
-        }
-        return false;
+        return in_array(strtolower($module), $this->modulesAvailable, true);
     }
 
     /**
-     * Parse le fichier de configuration du module depuis son fichier brik.yml
-     * 
-     * @param string $module
-     * @return bool|\Brikphp\Console\Brik\BrikConfig
+     * Parses the `brik.yml` configuration file for a module.
+     *
+     * @param string $module The module name.
+     * @return bool|BrikConfig The parsed configuration as a BrikConfig object, or false on failure.
      */
     protected function load(string $module): bool|BrikConfig
     {
         $brikConfig = Yaml::parseFile($this->pathToBrik($module));
-        if (!isset($brikConfig['di']['required'])){
+        if (!isset($brikConfig['di']['required'])) {
             return false;
         }
         return new BrikConfig($brikConfig);
     }
 
     /**
-     * Télécharge un module via composer
-     * 
-     * @param string $module
-     * @return bool|string|null
+     * Downloads a module using Composer.
+     *
+     * @param string $module The module name.
+     * @return bool|string|null The shell output of the Composer command, or null on failure.
      */
     protected function download(string $module)
     {

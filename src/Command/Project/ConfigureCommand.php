@@ -13,48 +13,51 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 
+/**
+ * ConfigureCommand handles the interactive configuration of the project.
+ */
 class ConfigureCommand extends ModuleCommand
-{   
+{
     /**
-     * Bases de données compatible
+     * List of supported databases.
      * @var string[]
      */
-    private array $databasesAvailable = ['Mysql', 'PostgreSQL', 'MongoDB'];
+    private array $databasesAvailable = ['MySQL', 'PostgreSQL', 'MongoDB'];
 
     /**
-     * Configuration générale de la commande
-     * 
+     * Configures the command with its name, description, and help text.
+     *
      * @return void
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this->setName('app:configure')
-            ->setDescription('Configuration interactive du projet.')
-            ->setHelp('Cette commande configure votre projet en demandant les informations nécessaires.');
+            ->setDescription('Interactive configuration of the project.')
+            ->setHelp('This command helps configure your project by collecting the necessary information.');
     }
 
     /**
-     * Exécution générale de la commande
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Executes the command to configure the project.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->askForDeleteCurrentConfig($input, $output);
 
-        // Projet
+        // Project configuration
         $project = new ProjectContainer();
-        $project->add('mode','development');
+        $project->add('mode', 'development');
         $project->add('APP_NAME', $this->askProjectName($input, $output) ?: 'Demo');
-        $project->add('APP_SECRET', bin2hex(random_bytes(32)));
+        $project->add('APP_SECRET', bin2hex(random_bytes(16)));
 
-        // Base de données
-        $useDb = $this->yesOrNo('Utiliser une Base de Données ?', $input, $output);
+        // Database configuration
+        $useDb = $this->yesOrNo('Use a database?', $input, $output);
 
         if ($useDb) {
-            $project->add('DB_CLIENT', $this->askDatabaseClient($input, $output) ?: 'Mysql');
+            $project->add('DB_CLIENT', $this->askDatabaseClient($input, $output) ?: 'MySQL');
             $project->add('DB_HOST', $this->askDatabaseHost($input, $output) ?: '127.0.0.1');
             $project->add('DB_USER', $this->askDatabaseUser($input, $output) ?: 'root');
             $project->add('DB_NAME', $this->askDatabaseName($input, $output) ?: 'demo');
@@ -65,151 +68,156 @@ class ConfigureCommand extends ModuleCommand
     }
 
     /** 
-     * Sauvegarde le fichier .env avec les différentes variables du project
+     * Saves the environment configuration to a .env file.
      *
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param OutputInterface $output
      * @param ProjectContainer $project
-     * @throws \RuntimeException
+     * @throws \RuntimeException If the file cannot be created or written to.
      * @return int
      */
-    private function saveEnvironment(OutputInterface $output, ProjectContainer $project): int 
+    private function saveEnvironment(OutputInterface $output, ProjectContainer $project): int
     {
         $fileSystem = new FileSystem();
         if (!$fileSystem->create($this->envFile())) {
-            $output->writeln("<error>Impossible de créer le fichier {$this->envfile()->getName()}</error>");
+            $output->writeln("<error>Unable to create the .env file.</error>");
             return Command::FAILURE;
         }
 
-        $output->writeln("\n<info>Écriture des variables dans le fichier .env...</info>");
+        $output->writeln("\n<info>Writing variables to the .env file...</info>");
 
         foreach ($project->data() as $key => $value) {
             $formattedValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
             $formattedValue = str_contains($formattedValue, ' ') ? "\"{$formattedValue}\"" : $formattedValue;
 
             if (!$fileSystem->write($this->envFile(), "{$key}={$formattedValue}\n")) {
-                $output->writeln("<error>Erreur lors de l'écriture de {$key} dans le fichier .env.</error>");
+                $output->writeln("<error>Error writing {$key} to the .env file.</error>");
                 return Command::FAILURE;
             }
         }
 
-        $output->writeln("<info>Configuration enregistrée avec succès.</info>");
-        $output->writeln("\n<info>Résumé de la configuration :\n</info>");
+        $output->writeln("<info>Configuration saved successfully.</info>");
+        $output->writeln("\n<info>Configuration summary:</info>\n");
 
         foreach ($project->data() as $key => $value) {
             $valueDisplay = is_bool($value) ? ($value ? 'true' : 'false') : $value;
             $output->writeln("<comment>{$key}</comment>=<info>{$valueDisplay}</info>");
         }
 
-        $output->writeln("\nVous pouvez maintenant lancez l'application avec la commande <comment>composer dev</comment>\n");
+        $output->writeln("\nYou can now start the application with the command <comment>composer dev</comment>\n");
         return Command::SUCCESS;
     }
 
     /**
-     * Demande à l'utilisateur pour supprimer la configuration en cours
+     * Asks the user whether to delete the current configuration.
      *
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return void
      */
     private function askForDeleteCurrentConfig(InputInterface $input, OutputInterface $output): void
     {
-        // Supprimer le fichier si il existe
         $fileSystem = new FileSystem();
-        if($this->envFile()->exists()) {
-            $this->yesOrNo(
-                "Le fichier de configuration .env existe déjà. Supprimer le fichier ?",
+        if ($this->envFile()->exists()) {
+            $delete = $this->yesOrNo(
+                "The .env configuration file already exists. Delete the file?",
                 $input,
                 $output
-            ) ? $fileSystem->delete($this->envFile()) : exit(0);
+            );
+
+            if ($delete) {
+                $fileSystem->delete($this->envFile());
+            } else {
+                exit(0);
+            }
         }
     }
 
     /**
-     * Demande le nom du projet
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Prompts the user for the project name.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string|null
      */
-    private function askProjectName(InputInterface $input, OutputInterface $output): string|null
+    private function askProjectName(InputInterface $input, OutputInterface $output): ?string
     {
-        return $this->ask("\nDonner un nom à votre projet (Demo) : ", $input, $output);
+        return $this->ask("\nEnter a name for your project (Demo): ", $input, $output);
     }
 
     /**
-     * Demande le type de base de données à utiliser
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Prompts the user for the database client type.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string
      */
     private function askDatabaseClient(InputInterface $input, OutputInterface $output): string
     {
         $helper = $this->getHelper('question');
         $question = new ChoiceQuestion(
-            'Quel type de Base de Données voulez-vous utiliser ? (default Mysql)',
+            'Which database type would you like to use? (default MySQL)',
             $this->databasesAvailable,
             0
         );
-        $question->setErrorMessage('La Base de Données "%s" est invalide.');
+        $question->setErrorMessage('The database type "%s" is invalid.');
         return $helper->ask($input, $output, $question);
     }
 
     /**
-     * Demande le nom de la base de données
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Prompts the user for the database name.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string|null
      */
-    private function askDatabaseName(InputInterface $input, OutputInterface $output): string|null
+    private function askDatabaseName(InputInterface $input, OutputInterface $output): ?string
     {
-        return $this->ask('Nom de la base de données (default root) : ', $input, $output);
+        return $this->ask("Database name (default demo): ", $input, $output);
     }
 
     /**
-     * Demande le nom d'utilisateur pour la db
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Prompts the user for the database username.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string|null
      */
-    private function askDatabaseUser(InputInterface $input, OutputInterface $output): string|null
+    private function askDatabaseUser(InputInterface $input, OutputInterface $output): ?string
     {
-        return $this->ask("Nom d'utilisateur (default root) : ", $input, $output);
+        return $this->ask("Database username (default root): ", $input, $output);
     }
 
     /**
-     * Demande le mot de passe pour la db
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Prompts the user for the database password.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string|null
      */
-    private function askDatabasePassword(InputInterface $input, OutputInterface $output): string|null
+    private function askDatabasePassword(InputInterface $input, OutputInterface $output): ?string
     {
-        return $this->ask("Mot de passe de la base de données (optionnel) : ", $input, $output);
+        return $this->ask("Database password (optional): ", $input, $output);
     }
 
     /**
-     * Demande l'host pour la db
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * Prompts the user for the database host.
+     *
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string|null
      */
-    private function askDatabaseHost(InputInterface $input, OutputInterface $output): string|null
+    private function askDatabaseHost(InputInterface $input, OutputInterface $output): ?string
     {
-        return $this->ask("Host (default localhost) : ", $input, $output);
+        return $this->ask("Database host (default localhost): ", $input, $output);
     }
 
     /**
-     * Retourne un object File pointant vers le fichier .env
-     * @return \Brikphp\FileSystem\FileInterface
+     * Returns a File object pointing to the .env file.
+     *
+     * @return FileInterface
      */
     private function envFile(): FileInterface
     {
         return new File(Console::root() . '.env');
     }
 }
-

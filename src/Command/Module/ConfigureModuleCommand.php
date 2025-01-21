@@ -8,62 +8,61 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Command to configure a new module added to the application.
+ */
 class ConfigureModuleCommand extends ModuleCommand
 {
     /**
-     * Configuration de la commande
-     * 
-     * @return void
+     * Configures the command by defining its name, description, help, and arguments.
      */
     protected function configure()
     {
         $this->setName('brik:configure')
-            ->setDescription("Configure un nouveau module ajouté à votre application.")
-            ->setHelp("Cette commande configure un nouveau module ajouté à votre application.")
-            ->addArgument('module', InputArgument::REQUIRED, 'Nom du module.');
+            ->setDescription("Configures a new module added to your application.")
+            ->setHelp("This command configures a new module added to your application by validating and initializing its setup.")
+            ->addArgument('module', InputArgument::REQUIRED, 'Name of the module.');
     }
 
     /**
-     * Main Function
-     * 
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     * @throws \RuntimeException
-     * @return int
+     * Executes the command to configure the specified module.
+     *
+     * @param InputInterface $input The input interface.
+     * @param OutputInterface $output The output interface.
+     * @return int The command status (success or failure).
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $module = strtolower($input->getArgument('module'));
 
-        // vérifie si le module est dans la liste de module valide
-        if(!$this->available(module: $module)) {
-            $output->writeln("\n<error>ERROR</error> Le module '{$module}' est invalide.\n");
+        // Check if the module is in the list of valid modules.
+        if (!$this->available(module: $module)) {
+            $output->writeln("\n<error>ERROR:</error> The module '{$module}' is invalid.\n");
             return Command::FAILURE;
         }
 
-        // vérifie si le module est correctement installé.
-        if(!$this->hasDefinitions($module)){
-            $output->writeln("\n<error>ERROR</error> Le module '{$module}' n'a pas de fichier brik.yml à sa racine.\n");
+        // Verify if the module is properly installed.
+        if (!$this->hasDefinitions($module)) {
+            $output->writeln("\n<error>ERROR:</error> The module '{$module}' does not have a 'brik.yml' file in its root directory.\n");
             return Command::FAILURE;
         }
 
-        // charge le fichier brik.yml
+        // Load the brik.yml configuration file.
         $brikConfig = $this->load($module);
         if (!$brikConfig) {
-            $output->writeln("<error>ERROR</error> La configuration brik.yml est invalide.");
+            $output->writeln("<error>ERROR:</error> The 'brik.yml' configuration is invalid.");
             return Command::FAILURE;
         }
 
-        // Ajoute le module dans le container d'injections de dépendance si besoin
+        // Add the module to the dependency injection container if required.
         if ($brikConfig->isRequiredInDiContainer()) {
             if (!$brikConfig->injectInDiContainer()) {
-                $output->writeln("<error>ERROR</error> Impossible d'initialiser le module dans le container.");
+                $output->writeln("<error>ERROR:</error> Unable to initialize the module in the dependency injection container.");
                 return Command::FAILURE;
             }
         }
 
-        $output->writeln("\n<info>Le module {$module} à été initialisé.</info>\n");
+        $output->writeln("\n<info>The module '{$module}' has been successfully initialized.</info>\n");
         return Command::SUCCESS;
     }
-
 }

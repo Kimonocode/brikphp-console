@@ -4,54 +4,92 @@ namespace Brikphp\Console\Container;
 
 use Brikphp\Console\Console;
 
-class DiContainer extends Container {
-
+class DiContainer extends Container
+{
     /**
-     * Chemin vers le fichier du container
+     * Path to the DI container configuration file.
+     * 
      * @var string
      */
     private string $path;
 
     /**
-     * namespace brikphp
+     * BrikPHP namespace.
+     * 
      * @var string
      */
     private string $namespace;
 
     /**
-     * Méthodes d'injections disponibles
+     * Supported dependency injection methods.
+     * 
      * @var string[]
      */
     private array $functionsAvailable = ['get', 'create'];
 
-    public function __construct()
+    /**
+     * Constructor initializes the container with the current configuration.
+     * @param mixed $filePath
+     */
+    public function __construct(?string $filePath = null)
     {
         $this->namespace = Console::getNamespace();
-        $this->path = Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
+        $this->path = $filePath ?? Console::root() . "vendor/{$this->namespace}/src/Core/config.php";
         $this->set($this->open());
     }
 
+
     /**
-     * Ajoute une nouvelle injection dans le container 
+     * Loads the DI container configuration from its file.
      * 
-     * @throws \RuntimeException
-     * @return bool
+     * @throws \RuntimeException If the file is missing, not writable, or invalid.
+     * @return array The loaded configuration.
      */
-    public function write()
+    public function open(): array
     {
+        $path = $this->path;
+
+        if (!file_exists($path)) {
+            throw new \RuntimeException("The file {$path} was not found.");
+        }
+
+        if (!is_writable($path)) {
+            throw new \RuntimeException("The file {$path} is not writable.");
+        }
+
+        $container = include $path;
+
+        if (!is_array($container)) {
+            throw new \RuntimeException("The configuration file does not return a valid array.");
+        }
+
+        return $container;
+    }
+
+    /**
+     * Writes the current configuration back to the container file.
+     * 
+     * @throws \RuntimeException If writing to the file fails.
+     * @param string|null $file Used for tests
+     * @return bool True if the operation was successful.
+     */
+    public function write(): bool
+    {
+        $path = $this->path;
         $content = "<?php\n\nreturn [\n";
         foreach ($this->data() as $key => $value) {
             $content .= "    {$this->formatClassReference($key)} => \\DI\\{$this->forceClassReference($value)},\n";
         }
         $content .= "];\n";
-        if (file_put_contents($this->path, $content) === false) {
-            throw new \RuntimeException("Erreur lors de l'écriture dans le fichier de configuration.");
+
+        if (file_put_contents($path, $content) === false) {
+            throw new \RuntimeException("Error writing to the configuration file.");
         }
         return true;
     }
 
     /**
-     * Ajoute ::class à la fin d'une clé si besoin
+     * Ensures that a class key ends with `::class`.
      * 
      * @param string $key
      * @return string
@@ -65,22 +103,21 @@ class DiContainer extends Container {
     }
 
     /**
-     * Supprime la dernière parenthèse de la function php-di, Force le mot clé ::class et rajoute la parenthèse
+     * Enforces the use of `::class` and appends a closing parenthesis if needed.
      * 
      * @param string $key
      * @return string
      */
-    public function forceClassReference(string $key): string 
+    public function forceClassReference(string $key): string
     {
         if (!preg_match('/class/', $key)) {
-            $key = substr($key, 0, -1);
-            $key .= "::class)";
+            $key = substr($key, 0, -1) . "::class)";
         }
         return $key;
     }
 
     /**
-     * Supprime le ::class d'une clé au besoin
+     * Removes the `::class` suffix from a key if present.
      * 
      * @param string $key
      * @return string
@@ -91,50 +128,29 @@ class DiContainer extends Container {
     }
 
     /**
-     * Retourne true si la méthode d'injection est acceptée false sinon
+     * Checks if the provided injection method is valid.
      * 
      * @param string $function
-     * @return bool
+     * @return bool True if the method is valid, false otherwise.
      */
     public function acceptInjectionFunction(string $function): bool
-    {   
+    {
         return in_array($function, $this->functionsAvailable);
     }
 
     /**
-     * Summary of formatWhitInjectionFunction
+     * Formats a key with the specified injection function.
+     * 
      * @param string $function
      * @param string $key
-     * @throws \RuntimeException
+     * @throws \RuntimeException If the function is not supported.
      * @return string
      */
-    public function formatWhitInjectionFunction(string $function, string $key): string
+    public function formatWithInjectionFunction(string $function, string $key): string
     {
-        if(!$this->acceptInjectionFunction($function)){
-            throw new \RuntimeException("Function invalide pour le container d'injections de dépendances.");    
+        if (!$this->acceptInjectionFunction($function)) {
+            throw new \RuntimeException("Invalid function for the dependency injection container.");
         }
         return "{$function}({$key})";
-    }
-
-    /**
-     * Inclu le fichier du container d'injection de dépendance Brikphp
-     * 
-     * @throws \RuntimeException
-     * @return array
-     */
-    private function open(): array
-    {
-        $path = $this->path;
-        if (!file_exists($path)) {
-            throw new \RuntimeException("Le fichier {$path} est introuvable.");
-        }
-        if (!is_writable($path)) {
-            throw new \RuntimeException("Le fichier {$path} n'est pas accessible en écriture.");
-        }
-        $container = include $path;
-           if (!is_array($container)) {
-            throw new \RuntimeException("Le fichier de configuration ne retourne pas un tableau valide.");
-        }
-        return $container;
     }
 }
