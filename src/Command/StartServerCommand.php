@@ -51,9 +51,7 @@ class StartServerCommand extends Command {
     {
         $io = new SymfonyStyle($input, $output);
 
-        $io->title("🧪 Development Server");
-        $io->success("HTTP Server: http://localhost:8000");
-        $io->success("WebSocket Server: ws://localhost:9000");
+        $io->title("🚀 Welcome to Development Server");
 
         $app = new App();
         $webSocketServer = new WebSocketServer();
@@ -85,9 +83,12 @@ class StartServerCommand extends Command {
         if ($input->getOption('watch')) {
             $watcher = new Watcher($webSocketServer, Console::root(), Loop::get());
             $watcher->watch();
+            $output->writeLn("👀 Files watched\n");
         }
 
-        $output->writeln("Press CTRL+C to stop.");
+        $output->writeLn("🌐✔️  HTTP Server ready on: http://localhost:8000");
+        $output->writeLn("🌐✔️  Web Socket Server ready on: ws://localhost:9000");
+        $output->writeln("\nPress CTRL+C to stop.");
 
         Loop::run();
 
