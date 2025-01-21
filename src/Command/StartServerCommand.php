@@ -6,6 +6,8 @@ use Brikphp\Console\Console;
 use Brikphp\Console\Server\Watcher;
 use Brikphp\Console\Server\WebSocketServer;
 use Brikphp\Core\App;
+use Brikphp\Http\Response;
+use Psr\Http\Message\ServerRequestInterface;
 use Ratchet\Server\IoServer;
 use Ratchet\WebSocket\WsServer;
 use React\EventLoop\Loop;
@@ -34,7 +36,8 @@ class StartServerCommand extends Command {
     {
         $this->setName('app:start')
             ->setDescription('Starts the development server.')
-            ->setHelp('This command starts a development server with HOT-RELOAD functionality.');
+            ->setHelp('This command starts a development server with HOT-RELOAD functionality.')
+            ->addOption('watch');
     }
 
     /**
@@ -56,8 +59,16 @@ class StartServerCommand extends Command {
         $webSocketServer = new WebSocketServer();
 
         // HTTP Server
-        $httpServer = new HttpServer(function () use ($app) {
-            return $app->run($app->fromGlobals());
+        $httpServer = new HttpServer(function (ServerRequestInterface $request) use ($app) {
+            try {
+                return $app->run($request);
+            } catch (\Throwable $e) {
+                return new Response(
+                    500, 
+                    ["Content-Type: text/plain"], 
+                    "Whoops ! Internale Server Error: {$e->getMessage()}"
+                );
+            }
         });
 
         $httpSocket = new SocketServer('0.0.0.0:8000');
@@ -71,10 +82,12 @@ class StartServerCommand extends Command {
         $ioServer = new IoServer($wsHttpServer, $wsSocket, Loop::get());
 
         // Watch for HOT-RELOAD
-        $watcher = new Watcher($webSocketServer, Console::root(), Loop::get());
-        $watcher->watch();
+        if ($input->getOption('watch')) {
+            $watcher = new Watcher($webSocketServer, Console::root(), Loop::get());
+            $watcher->watch();
+        }
 
-        $io->warning("Press CTRL+C to stop.");
+        $output->writeln("Press CTRL+C to stop.");
 
         Loop::run();
 
