@@ -56,8 +56,8 @@ class StartServerCommand extends Command {
         $webSocketServer = new WebSocketServer();
 
         // HTTP Server
-        $httpServer = new HttpServer(function ($request) use ($app) {
-            return $app->run($request);
+        $httpServer = new HttpServer(function () use ($app) {
+            return $app->run($app->fromGlobals());
         });
 
         $httpSocket = new SocketServer('0.0.0.0:8000');
