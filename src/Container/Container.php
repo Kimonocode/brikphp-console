@@ -49,11 +49,7 @@ class Container implements ContainerInterface
      */
     public function set(ContainerInterface|array $container): void
     {
-        if ($container instanceof ContainerInterface) {
-            $this->container = $container->get();
-        } else {
-            $this->container = $container;
-        }
+        $this->container = $container;
     }
 
     /**

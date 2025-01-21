@@ -82,7 +82,7 @@ class BrikConfig {
         }
 
         // Ajouter la nouvelle configuration au tableau
-        $container->add($from, $container->formatWhitInjectionFunction($function, $to));
+        $container->add($from, $container->formatWithInjectionFunction($function, $to));
 
         return $container->write();
     }
