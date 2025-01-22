@@ -2,6 +2,7 @@
 
 namespace Brikphp\Console;
 
+use Brikphp\Console\Command\Maker\MakeControllerCommand;
 use Brikphp\Console\Command\StartServerCommand;
 use Symfony\Component\Console\Application;
 use Brikphp\Console\Command\Project\ConfigureCommand;
@@ -37,6 +38,7 @@ class Console extends Application
         $this->add(new ConfigureCommand());
         $this->add(new AddModuleCommand());
         $this->add(new ConfigureModuleCommand());
+        $this->add(new MakeControllerCommand());
     }
 
     /**
@@ -56,5 +58,17 @@ class Console extends Application
     public static function getNamespace(): string
     {
         return self::$namespace;
+    }
+
+    public static function getUserNamespace(): string
+    {
+        $file = new \Brikphp\FileSystem\File(self::root() . 'composer.json');
+        $fileSystem = new \Brikphp\FileSystem\FileSystem([$file]);
+        $namespace = 'App\\';
+        if($file->exists()){
+            $content = json_decode($fileSystem->read($file), true);
+            $namespace = array_keys($content['autoload']['psr-4'])[0];
+        }
+        return $namespace;
     }
 }

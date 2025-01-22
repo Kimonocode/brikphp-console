@@ -49,4 +49,12 @@ class BaseCommand extends Command {
         $question = new Question($question);
         return $helper->ask($input, $output, $question);
     }
+
+    protected function success(OutputInterface $output, string $message, ?string $prefix = null, ?string $suffix = null): int
+    {
+        $prefix ??= '';
+        $suffix ??= '';
+        $output->writeLn("{$prefix}✔️  {$message} {$suffix}");
+        return Command::SUCCESS;
+    }   
 }

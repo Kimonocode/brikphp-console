@@ -2,6 +2,7 @@
 
 namespace Brikphp\Console\Command;
 
+use Brikphp\Console\Command\Base\BaseCommand;
 use Brikphp\Console\Console;
 use Brikphp\Console\Server\Watcher;
 use Brikphp\Console\Server\WebSocketServer;
@@ -23,7 +24,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Command to start the development server with HTTP and WebSocket capabilities.
  */
-class StartServerCommand extends Command {
+class StartServerCommand extends BaseCommand {
 
     private array $clients = [];
 
@@ -86,8 +87,8 @@ class StartServerCommand extends Command {
             $output->writeLn("👀 Files watched\n");
         }
 
-        $output->writeLn("🌐✔️  HTTP Server ready on: http://localhost:8000");
-        $output->writeLn("🌐✔️  Web Socket Server ready on: ws://localhost:9000");
+        $this->success($output, "HTTP Server ready on: http://localhost:8000", "🌐");
+        $this->success($output, "Web Socket Server ready on: ws://localhost:9000", "🌐");
         $output->writeln("\nPress CTRL+C to stop.");
 
         Loop::run();
