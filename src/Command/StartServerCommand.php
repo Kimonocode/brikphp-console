@@ -65,7 +65,7 @@ class StartServerCommand extends BaseCommand {
                 return new Response(
                     500, 
                     ["Content-Type: text/plain"], 
-                    "Whoops ! Internale Server Error: {$e->getMessage()}"
+                    "Whoops ! You have an Internal Server Error: {$e->getMessage()}"
                 );
             }
         });
