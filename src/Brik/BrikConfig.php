@@ -5,24 +5,31 @@ namespace Brikphp\Console\Brik;
 use Brikphp\Console\Container\DiContainer;
 
 /**
- * Gère le fichier brik.yml du module
+ * Manages the brik.yml configuration file for the module.
  */
 class BrikConfig {
 
     /**
-     * Configuration vide
+     * Holds the configuration data.
      * @var array
      */
     private array $config = [];
 
+    /**
+     * BrikConfig constructor.
+     * Initializes the configuration array.
+     * 
+     * @param array $config The configuration data.
+     */
     public function __construct(array $config)
     {
         $this->config = $config;
     }
 
     /**
-     * Renvoie la référence clé
-     * @return string
+     * Returns the key for dependency injection (DI) reference.
+     * 
+     * @return string The DI injection key.
      */
     public function getDiInjectionKey(): string
     {
@@ -30,17 +37,19 @@ class BrikConfig {
     }
 
     /**
-     * Renvoie la valeur clé
-     * @return string
+     * Returns the value for dependency injection (DI) reference.
+     * 
+     * @return string The DI injection value.
      */
     public function getDiInjectionValue(): string 
     {
-        return trim($this->config['di']['injection']['to']); 
+        return trim($this->config['di']['injection']['to']);
     }
 
     /**
-     * Renvoie la fonction utilisée pour php-di
-     * @return string
+     * Returns the DI injection function used for php-di.
+     * 
+     * @return string The DI injection function.
      */
     public function getDiInjectionFunction(): string
     {
@@ -48,8 +57,9 @@ class BrikConfig {
     }
 
     /**
-     * Renvoie si le module est requis dans le container
-     * @return bool
+     * Checks if the module is required in the DI container.
+     * 
+     * @return bool True if required in the DI container, otherwise false.
      */
     public function isRequiredInDiContainer(): bool
     {
@@ -57,33 +67,36 @@ class BrikConfig {
     }
 
     /**
-     * Injecte Les dépendances du module dans le container php-di
+     * Injects the module dependencies into the php-di container.
      * 
-     * @throws \RuntimeException
-     * @return bool
+     * @throws \RuntimeException If the injection cannot be completed.
+     * @return bool True if the injection was successful.
      */
     public function injectInDiContainer(): bool
     {
         $container = new DiContainer();
         
+        // Retrieve DI function and references.
         $function = $this->getDiInjectionFunction();
         $from = $container->formatClassReference($this->getDiInjectionKey());
         $to = $container->formatClassReference($this->getDiInjectionValue());
 
+        // Check if the class is already initialized in the container.
         foreach ($container->data() as $key => $value) {
-            if($key === $container->removeClassReference($from)){
-                throw new \RuntimeException("La dépendance est déjà initialisée dans le container.");
+            if ($key === $container->removeClassReference($from)) {
+                throw new \RuntimeException("The dependency is already initialized in the container.");
             }
         }
 
-        // Vérification des valeurs pour la méthode DI
+        // Validate the DI function.
         if (!$container->acceptInjectionFunction($function)) {
-            throw new \RuntimeException("La méthode DI '{$function}' n'est pas valide.");
+            throw new \RuntimeException("The DI method '{$function}' is invalid.");
         }
 
-        // Ajouter la nouvelle configuration au tableau
+        // Add the new configuration to the container.
         $container->add($from, $container->formatWithInjectionFunction($function, $to));
 
+        // Write the new configuration to the container.
         return $container->write();
     }
-} 
+}
